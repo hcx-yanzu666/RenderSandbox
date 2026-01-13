@@ -1,0 +1,11 @@
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# build dirs
+build/
+out/
+
+# OS junk
+.DS_Store
+Thumbs.db
