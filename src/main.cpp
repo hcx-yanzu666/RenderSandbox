@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "imgui.h"
@@ -24,6 +25,12 @@ int main()
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+
+    // ✅ 初始化 GLAD（必须在 OpenGL Context 创建之后）
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::fprintf(stderr, "Failed to initialize GLAD\n");
+        return -1;
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

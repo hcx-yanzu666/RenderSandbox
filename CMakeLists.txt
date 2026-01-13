@@ -11,8 +11,15 @@ add_executable(RenderSandbox
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(glad CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+
 
 target_link_libraries(RenderSandbox PRIVATE glfw imgui::imgui OpenGL::GL)
+target_link_libraries(RenderSandbox PRIVATE glfw imgui::imgui OpenGL::GL glad::glad)
+target_link_libraries(RenderSandbox PRIVATE glm::glm)
+
+
 
 if (WIN32)
     target_compile_definitions(RenderSandbox PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
