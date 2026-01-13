@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(RenderSandbox
         src/main.cpp
+        src/Shader.cpp
+        src/Shader.h
 )
 
 find_package(glfw3 CONFIG REQUIRED)

@@ -5,6 +5,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "Shader.h"
+
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -40,6 +42,45 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
+
+
+    //创建一个三角形
+    float vertices[] = {
+        -0.5f,-0.5f,0.0f,
+        0.5f,-0.5f,0.0f,
+        0.0f,0.5f,0.0f
+        };
+
+    unsigned int VAO,VBO;
+    glGenVertexArrays(1,&VAO);
+    glGenBuffers(1,&VBO);
+
+    //绑定VAO 状态容器
+    glBindVertexArray(VAO);
+
+    //绑定VBO 顶点数据
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);//gpu显存开辟一块buffer
+    glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW); //把vertices 从 cpu 拷贝到gpu
+
+    // 3. 告诉 OpenGL 如何解释顶点数据
+    glVertexAttribPointer(
+        0,              // location = 0
+        3,              // vec3
+        GL_FLOAT,
+        GL_FALSE,
+        3 * sizeof(float),
+        (void*)0
+    );
+    glEnableVertexAttribArray(0);
+
+    //解绑
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindVertexArray(0);
+
+    Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+
+
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -60,6 +101,12 @@ int main()
         glViewport(0, 0, w, h);
         glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // 画三角形
+        shader.Bind();
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
