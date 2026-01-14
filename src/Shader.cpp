@@ -109,6 +109,16 @@ unsigned int Shader::CreateShaderProgram(const std::string& vertexSrc, const std
     return program;
 }
 
+int Shader::GetUniformLocation(const std::string& name) const
+{
+    int location = glGetUniformLocation(m_RendererID,name.c_str());
+    if (location == -1)
+    {
+        std::fprintf(stderr, "[Shader] Warning: uniform '%s' doesn't exist or is not used.\n", name.c_str());
+    }
+    return location;
+}
+
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath)
 {
     //构造函数：串联流程
@@ -145,4 +155,11 @@ void Shader::Bind() const
 void Shader::Unbind() const
 {
     glUseProgram(0);
+}
+
+void Shader::setUniform4f(const std::string& name, float v0, float v1, float v2, float v3)
+{
+    int location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform4f(location,v0,v1,v2,v3);
 }

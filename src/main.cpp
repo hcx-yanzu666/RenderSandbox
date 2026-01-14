@@ -79,7 +79,7 @@ int main()
 
     Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
 
-
+    float colortest[4] = {1.0f,0.3f,0.2f,1.0f};
 
     while (!glfwWindowShouldClose(window))
     {
@@ -92,6 +92,7 @@ int main()
         ImGui::Begin("Hello");
         ImGui::Text("GLFW + ImGui is working.");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::ColorEdit4("Triangle Color", colortest);
         ImGui::End();
 
         ImGui::Render();
@@ -105,6 +106,7 @@ int main()
         // 画三角形
         shader.Bind();
         glBindVertexArray(VAO);
+        shader.setUniform4f("u_Color", colortest[0], colortest[1], colortest[2], colortest[3]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
 

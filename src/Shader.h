@@ -17,6 +17,7 @@ public:
     void Unbind() const;
 
     unsigned int GetRendererID() const { return m_RendererID; }
+    void setUniform4f(const std::string& name,float v0,float v1,float v2,float v3);
 
 private:
     //program object的句柄 一个可执行的着色器程序
@@ -26,4 +27,5 @@ private:
     //把GLSL文本->gpu能理解的shader object
     static unsigned int CompileShader(unsigned int type, const std::string& source);
     static unsigned int CreateShaderProgram(const std::string& vertexSrc, const std::string& fragmentSrc);
+    int GetUniformLocation(const std::string& name) const;
 };
