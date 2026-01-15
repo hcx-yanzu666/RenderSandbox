@@ -6,6 +6,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "Shader.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 
 static void glfw_error_callback(int error, const char* description)
@@ -80,6 +82,7 @@ int main()
     Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
 
     float colortest[4] = {1.0f,0.3f,0.2f,1.0f};
+    float angleDeg = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -93,6 +96,7 @@ int main()
         ImGui::Text("GLFW + ImGui is working.");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::ColorEdit4("Triangle Color", colortest);
+        ImGui::SliderFloat("Angle (deg)", &angleDeg, -180.0f, 180.0f);
         ImGui::End();
 
         ImGui::Render();
@@ -104,9 +108,17 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // 画三角形
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::rotate(model, glm::radians(angleDeg), glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 view = glm::mat4(1.0f);
+        glm::mat4 proj = glm::mat4(1.0f);
+        glm::mat4 mvp = proj * view * model;
+
         shader.Bind();
-        glBindVertexArray(VAO);
+        shader.setUniformMat4("u_MVP", mvp);
         shader.setUniform4f("u_Color", colortest[0], colortest[1], colortest[2], colortest[3]);
+        glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
 
