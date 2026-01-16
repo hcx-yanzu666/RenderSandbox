@@ -36,9 +36,7 @@ int main()
         return -1;
     }
 
-    //鼠标不会跑出边界
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -90,6 +88,8 @@ int main()
     float zoom = 1.0f;
     glm::vec3 cameraPos(0.0f,0.0f,3.0f);
     glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
+    glm::vec3 worldUp(0.0f,1.0f,0.0f);
+    glm::vec3 cameraRight(1.0f,0.0f,0.0f);
     glm::vec3 cameraUp(0.0f,1.0f,0.0f);
     float yaw = -90.0f;
     float pitch = 0.0f;
@@ -104,6 +104,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+        int rmb = glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_RIGHT);
         float now = (float)glfwGetTime();
         float deltaTime = now - lasetTime;
         lasetTime = now;
@@ -117,7 +118,7 @@ int main()
             cameraPos -= cameraFront * velocity;
 
         // 左右：沿 right（front x up）
-        glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
+        cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             cameraPos += cameraRight * velocity;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
@@ -131,34 +132,46 @@ int main()
 
 
         double xpos,ypos;
-        glfwGetCursorPos(window,&xpos,&ypos);
-        if (firstMouse)
+
+        if (rmb == GLFW_PRESS)
         {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwGetCursorPos(window, &xpos, &ypos);
+            if (firstMouse) {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+            }
+            double xoffset = xpos - lastX;
+            double yoffset = lastY - ypos; // 注意：y 反过来，让向上移动鼠标 = pitch 增大
             lastX = xpos;
             lastY = ypos;
-            firstMouse = false;
+
+            xoffset *= mouseSensitivity;
+            yoffset *= mouseSensitivity;
+
+            yaw += (float)xoffset;
+            pitch += (float)yoffset;
+
+            //限制pitch,防止翻转
+            if (pitch > 89.0f)pitch = 89.0f;
+            if (pitch < -89.0f)pitch = -89.0f;
         }
-        double xoffset = xpos - lastX;
-        double yoffset = lastY - ypos; // 注意：y 反过来，让向上移动鼠标 = pitch 增大
-        lastX = xpos;
-        lastY = ypos;
-
-        xoffset *= mouseSensitivity;
-        yoffset *= mouseSensitivity;
-
-        yaw += (float)xoffset;
-        pitch += (float)yoffset;
-
-        //限制pitch,防止翻转
-        if (pitch > 89.0f)pitch = 89.0f;
-        if (pitch < -89.0f)pitch = -89.0f;
-
+        else
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            firstMouse = true;
+        }
         //从yaw/pitch 计算front
         glm::vec3 front;
-        front.x = cos(glm::radians(yaw) * cos(glm::radians(pitch)));
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         front.y = sin(glm::radians(pitch));
-        front.z = sin(glm::radians(yaw) * cos(glm::radians(pitch)));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         cameraFront = glm::normalize(front);
+
+        // 正交化：用 worldUp 来“扶正”
+        cameraRight = glm::normalize(glm::cross(cameraFront, worldUp));
+        cameraUp    = glm::normalize(glm::cross(cameraRight, cameraFront));
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -186,7 +199,7 @@ int main()
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, glm::radians(angleDeg), glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 view = glm::lookAt(cameraPos,cameraFront,cameraUp);
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 
         //正交矩阵
