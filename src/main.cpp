@@ -36,6 +36,10 @@ int main()
         return -1;
     }
 
+    //鼠标不会跑出边界
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -87,6 +91,12 @@ int main()
     glm::vec3 cameraPos(0.0f,0.0f,3.0f);
     glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp(0.0f,1.0f,0.0f);
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+    float mouseSensitivity = 0.1f;
+
+    bool firstMouse = true;
+    double lastX = 0.0, lastY = 0.0;
     float fovDeg = 60.0f;
     float lasetTime = (float)glfwGetTime();
     float moveSpeed = 2.5f;
@@ -119,6 +129,37 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
             cameraPos -= cameraUp * velocity;
 
+
+        double xpos,ypos;
+        glfwGetCursorPos(window,&xpos,&ypos);
+        if (firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+        double xoffset = xpos - lastX;
+        double yoffset = lastY - ypos; // 注意：y 反过来，让向上移动鼠标 = pitch 增大
+        lastX = xpos;
+        lastY = ypos;
+
+        xoffset *= mouseSensitivity;
+        yoffset *= mouseSensitivity;
+
+        yaw += (float)xoffset;
+        pitch += (float)yoffset;
+
+        //限制pitch,防止翻转
+        if (pitch > 89.0f)pitch = 89.0f;
+        if (pitch < -89.0f)pitch = -89.0f;
+
+        //从yaw/pitch 计算front
+        glm::vec3 front;
+        front.x = cos(glm::radians(yaw) * cos(glm::radians(pitch)));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw) * cos(glm::radians(pitch)));
+        cameraFront = glm::normalize(front);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -129,6 +170,8 @@ int main()
         ImGui::DragFloat3("Camera Pos", &cameraPos.x, 0.05f);
         ImGui::SliderFloat("FOV (deg)", &fovDeg, 20.0f, 90.0f);
         ImGui::SliderFloat("Zoom", &zoom, 0.2f, 3.0f);
+        ImGui::SliderFloat("Sensitivity", &mouseSensitivity, 0.01f, 0.5f);
+        ImGui::Text("Yaw: %.1f  Pitch: %.1f", yaw, pitch);
         ImGui::ColorEdit4("Triangle Color", colortest);
         ImGui::End();
         ImGui::Render();
