@@ -85,26 +85,52 @@ int main()
     float angleDeg = 0.0f;
     float zoom = 1.0f;
     glm::vec3 cameraPos(0.0f,0.0f,3.0f);
-    glm::vec3 cameraTarget(0.0f,0.0f,0.0f);
+    glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp(0.0f,1.0f,0.0f);
+    float fovDeg = 60.0f;
+    float lasetTime = (float)glfwGetTime();
+    float moveSpeed = 2.5f;
 
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+        float now = (float)glfwGetTime();
+        float deltaTime = now - lasetTime;
+        lasetTime = now;
+
+        float velocity = moveSpeed * deltaTime;
+
+        // 前后：沿 front
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            cameraPos += cameraFront * velocity;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            cameraPos -= cameraFront * velocity;
+
+        // 左右：沿 right（front x up）
+        glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            cameraPos += cameraRight * velocity;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            cameraPos -= cameraRight * velocity;
+
+        // 上下：沿 up（这里先用世界 up）
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+            cameraPos += cameraUp * velocity;
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+            cameraPos -= cameraUp * velocity;
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
         ImGui::Begin("Hello");
         ImGui::Text("GLFW + ImGui is working.");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::SliderFloat("Angle (deg)", &angleDeg, -180.0f, 180.0f);
         ImGui::DragFloat3("Camera Pos", &cameraPos.x, 0.05f);
+        ImGui::SliderFloat("FOV (deg)", &fovDeg, 20.0f, 90.0f);
         ImGui::SliderFloat("Zoom", &zoom, 0.2f, 3.0f);
         ImGui::ColorEdit4("Triangle Color", colortest);
         ImGui::End();
-
         ImGui::Render();
 
         int w, h;
@@ -117,15 +143,22 @@ int main()
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, glm::radians(angleDeg), glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 view = glm::lookAt(cameraPos,cameraTarget,cameraUp);
-        float aspect = (h == 0)? 1.0f:(float)w/(float)h;
-        // 以zoom控制可视范围：zoom越大,可视范围越小,物体看起来越大
-        float viewSize = 2.0f / zoom;
-        float right = viewSize * aspect;
-        float left = -right;
-        float top = viewSize;
-        float bottom = -top;
-        glm::mat4 proj = glm::ortho(left, right, bottom, top, 0.1f, 100.0f);
+        glm::mat4 view = glm::lookAt(cameraPos,cameraFront,cameraUp);
+
+
+        //正交矩阵
+        // float aspect = (h == 0)? 1.0f:(float)w/(float)h;
+        // // 以zoom控制可视范围：zoom越大,可视范围越小,物体看起来越大
+        // float viewSize = 2.0f / zoom;
+        // float right = viewSize * aspect;
+        // float left = -right;
+        // float top = viewSize;
+        // float bottom = -top;
+        // glm::mat4 proj = glm::ortho(left, right, bottom, top, 0.1f, 100.0f);
+
+        //透视矩阵
+        float aspect = (h==0) ? 1.0f : (float)w / (float)h;
+        glm::mat4 proj = glm::perspective(glm::radians(fovDeg),aspect,0.1f,100.0f);
         glm::mat4 mvp = proj * view * model;
 
         shader.Bind();
