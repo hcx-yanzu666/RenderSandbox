@@ -84,6 +84,9 @@ int main()
     float colortest[4] = {1.0f,0.3f,0.2f,1.0f};
     float angleDeg = 0.0f;
     float zoom = 1.0f;
+    glm::vec3 cameraPos(0.0f,0.0f,3.0f);
+    glm::vec3 cameraTarget(0.0f,0.0f,0.0f);
+    glm::vec3 cameraUp(0.0f,1.0f,0.0f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -97,6 +100,7 @@ int main()
         ImGui::Text("GLFW + ImGui is working.");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::SliderFloat("Angle (deg)", &angleDeg, -180.0f, 180.0f);
+        ImGui::DragFloat3("Camera Pos", &cameraPos.x, 0.05f);
         ImGui::SliderFloat("Zoom", &zoom, 0.2f, 3.0f);
         ImGui::ColorEdit4("Triangle Color", colortest);
         ImGui::End();
@@ -113,7 +117,7 @@ int main()
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, glm::radians(angleDeg), glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 view = glm::mat4(1.0f);
+        glm::mat4 view = glm::lookAt(cameraPos,cameraTarget,cameraUp);
         float aspect = (h == 0)? 1.0f:(float)w/(float)h;
         // 以zoom控制可视范围：zoom越大,可视范围越小,物体看起来越大
         float viewSize = 2.0f / zoom;
@@ -121,7 +125,7 @@ int main()
         float left = -right;
         float top = viewSize;
         float bottom = -top;
-        glm::mat4 proj = glm::ortho(left, right, bottom, top, -1.0f, 1.0f);
+        glm::mat4 proj = glm::ortho(left, right, bottom, top, 0.1f, 100.0f);
         glm::mat4 mvp = proj * view * model;
 
         shader.Bind();
