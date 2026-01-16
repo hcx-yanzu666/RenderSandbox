@@ -15,6 +15,14 @@ static void glfw_error_callback(int error, const char* description)
     std::fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
+static float g_ScrollY = 0.0f;
+
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    (void)window; (void)xoffset;
+    g_ScrollY += (float)yoffset;
+}
+
 int main()
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -28,6 +36,7 @@ int main()
     if (!window) { glfwTerminate(); return -1; }
 
     glfwMakeContextCurrent(window);
+    glfwSetScrollCallback(window, scroll_callback);
     glfwSwapInterval(1);
 
     // ✅ 初始化 GLAD（必须在 OpenGL Context 创建之后）
@@ -95,6 +104,12 @@ int main()
     float pitch = 0.0f;
     float mouseSensitivity = 0.1f;
 
+    //中键拖拽相关
+    bool panning = false;
+    double panLastX = 0.0, panLastY = 0.0;
+    float panSpeed = 0.005f;
+
+
     bool firstMouse = true;
     double lastX = 0.0, lastY = 0.0;
     float fovDeg = 60.0f;
@@ -105,6 +120,7 @@ int main()
     {
         glfwPollEvents();
         int rmb = glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_RIGHT);
+        int mmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
         float now = (float)glfwGetTime();
         float deltaTime = now - lasetTime;
         lasetTime = now;
@@ -162,6 +178,34 @@ int main()
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             firstMouse = true;
         }
+
+        double mx, my;
+        glfwGetCursorPos(window, &mx, &my);
+
+        if (mmb == GLFW_PRESS)
+        {
+            if (!panning)
+            {
+                panning = true;
+                panLastX = mx;
+                panLastY = my;
+            }
+
+            double dx = mx - panLastX;
+            double dy = my - panLastY;
+            panLastX = mx;
+            panLastY = my;
+
+            // 屏幕坐标：右为 +dx，下为 +dy
+            // 我们希望：拖拽向右 -> 相机向右移动；拖拽向下 -> 相机向下移动（因此 dy 用 -）
+            cameraPos += cameraRight * (float)(dx * panSpeed);
+            cameraPos -= cameraUp    * (float)(dy * panSpeed);
+        }
+        else
+        {
+            panning = false;
+        }
+
         //从yaw/pitch 计算front
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -188,6 +232,14 @@ int main()
         ImGui::ColorEdit4("Triangle Color", colortest);
         ImGui::End();
         ImGui::Render();
+
+        if (g_ScrollY != 0.0f)
+        {
+            fovDeg -= g_ScrollY * 2.0f;          // 滚轮上推一般缩小FOV（放大）
+            if (fovDeg < 20.0f) fovDeg = 20.0f;
+            if (fovDeg > 90.0f) fovDeg = 90.0f;
+            g_ScrollY = 0.0f;
+        }
 
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
