@@ -6,23 +6,24 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "Shader.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
+// ---------------------- Callbacks ----------------------
 static void glfw_error_callback(int error, const char* description)
 {
     std::fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
 static float g_ScrollY = 0.0f;
-
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     (void)window; (void)xoffset;
     g_ScrollY += (float)yoffset;
 }
 
+// ---------------------- Main ----------------------
 int main()
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -39,139 +40,144 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
     glfwSwapInterval(1);
 
-    // ✅ 初始化 GLAD（必须在 OpenGL Context 创建之后）
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::fprintf(stderr, "Failed to initialize GLAD\n");
         return -1;
     }
 
+    // --------- GL states (default ON; can be toggled in ImGui) ---------
+    bool enableDepth = true;
+    bool enableCull  = true;
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+    // --------- ImGui ---------
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-
     const char* glsl_version = "#version 330";
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-
-
-    //创建一个三角形
+    // --------- Cube geometry (positions only) ---------
     float vertices[] = {
-        -1.0f,-1.0f,0.0f,
-         1.0f,-1.0f,0.0f,
-         0.0f, 1.0f,0.0f
+        // back face
+        -0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
+        // front face
+        -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f, -0.5f,  0.5f,
+        // left face
+        -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,
+        // right face
+         0.5f,  0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,
+        // bottom face
+        -0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f,
+        // top face
+        -0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f
     };
 
-    unsigned int VAO,VBO;
-    glGenVertexArrays(1,&VAO);
-    glGenBuffers(1,&VBO);
+    unsigned int VAO = 0, VBO = 0;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
-    //绑定VAO 状态容器
     glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //绑定VBO 顶点数据
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);//gpu显存开辟一块buffer
-    glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW); //把vertices 从 cpu 拷贝到gpu
-
-    // 3. 告诉 OpenGL 如何解释顶点数据
-    glVertexAttribPointer(
-        0,              // location = 0
-        3,              // vec3
-        GL_FLOAT,
-        GL_FALSE,
-        3 * sizeof(float),
-        (void*)0
-    );
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    //解绑
-    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
 
-    float colortest[4] = {1.0f,0.3f,0.2f,1.0f};
-    float angleDeg = 0.0f;
-    float zoom = 1.0f;
-    glm::vec3 cameraPos(0.0f,0.0f,3.0f);
-    glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
-    glm::vec3 worldUp(0.0f,1.0f,0.0f);
-    glm::vec3 cameraRight(1.0f,0.0f,0.0f);
-    glm::vec3 cameraUp(0.0f,1.0f,0.0f);
+    // --------- Render params ---------
+    float color[4] = { 1.0f, 0.3f, 0.2f, 1.0f };
+
+    // Camera (editor-like)
+    glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
+    glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+
     float yaw = -90.0f;
     float pitch = 0.0f;
-    float mouseSensitivity = 0.1f;
+    float mouseSensitivity = 0.12f;
 
-    //中键拖拽相关
+    glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraRight(1.0f, 0.0f, 0.0f);
+    glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
+
+    bool firstMouse = true;
+    double lastX = 0.0, lastY = 0.0;
+
     bool panning = false;
     double panLastX = 0.0, panLastY = 0.0;
     float panSpeed = 0.005f;
 
-
-    bool firstMouse = true;
-    double lastX = 0.0, lastY = 0.0;
     float fovDeg = 60.0f;
-    float lasetTime = (float)glfwGetTime();
+
     float moveSpeed = 2.5f;
+    float lastTime = (float)glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        int rmb = glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_RIGHT);
-        int mmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
+
+        // delta time
         float now = (float)glfwGetTime();
-        float deltaTime = now - lasetTime;
-        lasetTime = now;
+        float dt = now - lastTime;
+        lastTime = now;
 
-        float velocity = moveSpeed * deltaTime;
+        // --------- Optional: keyboard move (feel free to disable) ---------
+        float velocity = moveSpeed * dt;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraFront * velocity;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraFront * velocity;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += cameraRight * velocity;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= cameraRight * velocity;
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos += worldUp * velocity;
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos -= worldUp * velocity;
 
-        // 前后：沿 front
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            cameraPos += cameraFront * velocity;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            cameraPos -= cameraFront * velocity;
-
-        // 左右：沿 right（front x up）
-        cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            cameraPos += cameraRight * velocity;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            cameraPos -= cameraRight * velocity;
-
-        // 上下：沿 up（这里先用世界 up）
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-            cameraPos += cameraUp * velocity;
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-            cameraPos -= cameraUp * velocity;
-
-
-        double xpos,ypos;
-
+        // --------- Mouse: RMB rotate (only when pressed) ---------
+        int rmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
         if (rmb == GLFW_PRESS)
         {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+            double xpos, ypos;
             glfwGetCursorPos(window, &xpos, &ypos);
+
             if (firstMouse) {
                 lastX = xpos;
                 lastY = ypos;
                 firstMouse = false;
             }
+
             double xoffset = xpos - lastX;
-            double yoffset = lastY - ypos; // 注意：y 反过来，让向上移动鼠标 = pitch 增大
+            double yoffset = lastY - ypos; // invert Y for "look up"
+
             lastX = xpos;
             lastY = ypos;
 
             xoffset *= mouseSensitivity;
             yoffset *= mouseSensitivity;
 
-            yaw += (float)xoffset;
+            yaw   += (float)xoffset;
             pitch += (float)yoffset;
 
-            //限制pitch,防止翻转
-            if (pitch > 89.0f)pitch = 89.0f;
-            if (pitch < -89.0f)pitch = -89.0f;
+            if (pitch > 89.0f) pitch = 89.0f;
+            if (pitch < -89.0f) pitch = -89.0f;
         }
         else
         {
@@ -179,13 +185,14 @@ int main()
             firstMouse = true;
         }
 
+        // --------- Mouse: MMB pan ---------
+        int mmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
         double mx, my;
         glfwGetCursorPos(window, &mx, &my);
 
         if (mmb == GLFW_PRESS)
         {
-            if (!panning)
-            {
+            if (!panning) {
                 panning = true;
                 panLastX = mx;
                 panLastY = my;
@@ -196,8 +203,6 @@ int main()
             panLastX = mx;
             panLastY = my;
 
-            // 屏幕坐标：右为 +dx，下为 +dy
-            // 我们希望：拖拽向右 -> 相机向右移动；拖拽向下 -> 相机向下移动（因此 dy 用 -）
             cameraPos += cameraRight * (float)(dx * panSpeed);
             cameraPos -= cameraUp    * (float)(dy * panSpeed);
         }
@@ -206,83 +211,87 @@ int main()
             panning = false;
         }
 
-        //从yaw/pitch 计算front
+        // --------- Scroll: FOV zoom ---------
+        if (g_ScrollY != 0.0f)
+        {
+            fovDeg -= g_ScrollY * 2.0f;
+            if (fovDeg < 20.0f) fovDeg = 20.0f;
+            if (fovDeg > 90.0f) fovDeg = 90.0f;
+            g_ScrollY = 0.0f;
+        }
+
+        // --------- Rebuild camera basis from yaw/pitch (stable, orthonormal) ---------
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         front.y = sin(glm::radians(pitch));
         front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         cameraFront = glm::normalize(front);
 
-        // 正交化：用 worldUp 来“扶正”
         cameraRight = glm::normalize(glm::cross(cameraFront, worldUp));
         cameraUp    = glm::normalize(glm::cross(cameraRight, cameraFront));
 
+        // --------- ImGui ---------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::Begin("Hello");
-        ImGui::Text("GLFW + ImGui is working.");
-        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-        ImGui::SliderFloat("Angle (deg)", &angleDeg, -180.0f, 180.0f);
-        ImGui::DragFloat3("Camera Pos", &cameraPos.x, 0.05f);
+
+        ImGui::Begin("RenderSandbox");
+        ImGui::ColorEdit4("Color", color);
         ImGui::SliderFloat("FOV (deg)", &fovDeg, 20.0f, 90.0f);
-        ImGui::SliderFloat("Zoom", &zoom, 0.2f, 3.0f);
-        ImGui::SliderFloat("Sensitivity", &mouseSensitivity, 0.01f, 0.5f);
-        ImGui::Text("Yaw: %.1f  Pitch: %.1f", yaw, pitch);
-        ImGui::ColorEdit4("Triangle Color", colortest);
+        ImGui::SliderFloat("Move Speed", &moveSpeed, 0.1f, 10.0f);
+        ImGui::SliderFloat("Mouse Sens", &mouseSensitivity, 0.01f, 0.5f);
+        ImGui::Checkbox("Depth Test", &enableDepth);
+        ImGui::Checkbox("Backface Cull", &enableCull);
+        ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::Text("Yaw %.1f  Pitch %.1f", yaw, pitch);
         ImGui::End();
+
         ImGui::Render();
 
-        if (g_ScrollY != 0.0f)
-        {
-            fovDeg -= g_ScrollY * 2.0f;          // 滚轮上推一般缩小FOV（放大）
-            if (fovDeg < 20.0f) fovDeg = 20.0f;
-            if (fovDeg > 90.0f) fovDeg = 90.0f;
-            g_ScrollY = 0.0f;
-        }
+        // --------- Apply GL state toggles ---------
+        if (enableDepth) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        if (enableCull)  glEnable(GL_CULL_FACE);  else glDisable(GL_CULL_FACE);
 
+        // --------- Render ---------
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
         glViewport(0, 0, w, h);
+
         glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 画三角形
+        // Matrices
+        glm::mat4 model(1.0f);
+        // rotate around a non-axis-aligned vector to show depth/cull clearly
+        model = glm::rotate(model, now * 0.8f, glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)));
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(angleDeg), glm::vec3(0.0f, 0.0f, 1.0f));
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
+        float aspect = (h == 0) ? 1.0f : (float)w / (float)h;
+        glm::mat4 proj = glm::perspective(glm::radians(fovDeg), aspect, 0.1f, 100.0f);
 
-        //正交矩阵
-        // float aspect = (h == 0)? 1.0f:(float)w/(float)h;
-        // // 以zoom控制可视范围：zoom越大,可视范围越小,物体看起来越大
-        // float viewSize = 2.0f / zoom;
-        // float right = viewSize * aspect;
-        // float left = -right;
-        // float top = viewSize;
-        // float bottom = -top;
-        // glm::mat4 proj = glm::ortho(left, right, bottom, top, 0.1f, 100.0f);
-
-        //透视矩阵
-        float aspect = (h==0) ? 1.0f : (float)w / (float)h;
-        glm::mat4 proj = glm::perspective(glm::radians(fovDeg),aspect,0.1f,100.0f);
         glm::mat4 mvp = proj * view * model;
 
         shader.Bind();
         shader.setUniformMat4("u_MVP", mvp);
-        shader.setUniform4f("u_Color", colortest[0], colortest[1], colortest[2], colortest[3]);
+        shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
+
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
 
+    // cleanup
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
