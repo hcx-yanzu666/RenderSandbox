@@ -172,3 +172,12 @@ void Shader::setUniform4f(const std::string& name, float v0, float v1, float v2,
     if (location != -1)
         glUniform4f(location,v0,v1,v2,v3);
 }
+
+void Shader::setUniform1i(const std::string& name, int v)
+{
+    //把shader里的 u_Texture0（sampler2D）设置为 v
+    //含义是  这个sampler 从 texture unit v 取纹理 （从 v 号坑的 (sampler2D → 找 unitv 的 GL_TEXTURE_2D) 取纹理）
+    int location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform1i(location, v);
+}

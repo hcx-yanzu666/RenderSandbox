@@ -8,6 +8,8 @@ add_executable(RenderSandbox
         src/main.cpp
         src/Shader.cpp
         src/Shader.h
+        src/Texture2D.cpp
+        src/Texture2D.h
 )
 
 find_package(glfw3 CONFIG REQUIRED)

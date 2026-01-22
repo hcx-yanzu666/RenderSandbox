@@ -9,6 +9,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Texture2D.h"
 
 // ---------------------- Callbacks ----------------------
 static void glfw_error_callback(int error, const char* description)
@@ -44,6 +45,7 @@ int main()
         std::fprintf(stderr, "Failed to initialize GLAD\n");
         return -1;
     }
+    Texture2D albedo("assets/textures/container.jpg", false);
 
     // --------- GL states (default ON; can be toggled in ImGui) ---------
     bool enableDepth = true;
@@ -67,26 +69,63 @@ int main()
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // --------- Cube geometry (positions only) ---------
+    // pos.xyz + uv
     float vertices[] = {
-        // back face
-        -0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
-        // front face
-        -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f, -0.5f,  0.5f,
-        // left face
-        -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,
-        // right face
-         0.5f,  0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,
-        // bottom face
-        -0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f,
-        // top face
-        -0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f
+        // front face (z = +0.5)
+        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+
+         0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+
+        // back face (z = -0.5)
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+
+         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+
+        // left face (x = -0.5)
+        -0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+
+        // right face (x = +0.5)
+         0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+
+         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+
+        // bottom face (y = -0.5)
+        -0.5f, -0.5f, -0.5f,   0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,   1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+
+         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,   0.0f, 1.0f,
+
+        // top face (y = +0.5)
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+
+         0.5f,  0.5f,  0.5f,   1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,   0.0f, 0.0f
     };
+
 
     unsigned int VAO = 0, VBO = 0;
     glGenVertexArrays(1, &VAO);
@@ -96,8 +135,13 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    //apos (location = 0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    //auv (location = 1)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -273,6 +317,8 @@ int main()
         glm::mat4 mvp = proj * view * model;
 
         shader.Bind();
+        albedo.Bind(0);
+        shader.setUniform1i("u_Texture0", 0);
         shader.setUniformMat4("u_MVP", mvp);
         shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
 

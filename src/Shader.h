@@ -20,6 +20,7 @@ public:
     unsigned int GetRendererID() const { return m_RendererID; }
     void setUniformMat4(const std::string& name, const glm::mat4& matrix);
     void setUniform4f(const std::string& name,float v0,float v1,float v2,float v3);
+    void setUniform1i(const std::string& name,int v);
 private:
     //program object的句柄 一个可执行的着色器程序
     unsigned int m_RendererID = 0;
