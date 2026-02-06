@@ -71,60 +71,60 @@ int main()
     // --------- Cube geometry (positions only) ---------
     // pos.xyz + uv
     float vertices[] = {
-        // front face (z = +0.5)
-        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+    // --------- Front face (z = +0.5), normal = (0,0,1)
+    -0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
 
-         0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
 
-        // back face (z = -0.5)
-        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+    // --------- Back face (z = -0.5), normal = (0,0,-1)
+    -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 0.0f,
 
-         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 1.0f,
 
-        // left face (x = -0.5)
-        -0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+    // --------- Left face (x = -0.5), normal = (-1,0,0)
+    -0.5f,  0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
 
-        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
 
-        // right face (x = +0.5)
-         0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+    // --------- Right face (x = +0.5), normal = (1,0,0)
+     0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
 
-         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
 
-        // bottom face (y = -0.5)
-        -0.5f, -0.5f, -0.5f,   0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,   1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+    // --------- Bottom face (y = -0.5), normal = (0,-1,0)
+    -0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 0.0f,
 
-         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,   0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 1.0f,
 
-        // top face (y = +0.5)
-        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,   1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+    // --------- Top face (y = +0.5), normal = (0,1,0)
+    -0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f,
 
-         0.5f,  0.5f,  0.5f,   1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,   0.0f, 0.0f
-    };
+     0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f
+};
 
 
     unsigned int VAO = 0, VBO = 0;
@@ -135,13 +135,17 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //apos (location = 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    //apos
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    //auv (location = 1)
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    //anormal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    //auv
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -150,30 +154,31 @@ int main()
 
     // --------- Render params ---------
     float color[4] = { 1.0f, 0.3f, 0.2f, 1.0f };
-
     // Camera (editor-like)
     glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
     glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-
     float yaw = -90.0f;
     float pitch = 0.0f;
     float mouseSensitivity = 0.12f;
-
     glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraRight(1.0f, 0.0f, 0.0f);
     glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
-
     bool firstMouse = true;
     double lastX = 0.0, lastY = 0.0;
-
     bool panning = false;
     double panLastX = 0.0, panLastY = 0.0;
     float panSpeed = 0.005f;
-
     float fovDeg = 60.0f;
-
     float moveSpeed = 2.5f;
     float lastTime = (float)glfwGetTime();
+
+    //光照参数
+    float lightPos[3] = {1.2f,1.0f,2.0f};
+    float lightColor[3] = {1.0f,1.0f,1.0f};
+    //光照
+    float shininess = 32.0f;
+    //环境光强度
+    float ambientStrength = 0.08f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -288,6 +293,12 @@ int main()
         ImGui::Checkbox("Backface Cull", &enableCull);
         ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("Yaw %.1f  Pitch %.1f", yaw, pitch);
+        ImGui::Separator();
+        ImGui::Text("Lighting");
+        ImGui::SliderFloat3("Light Pos", lightPos, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Light Color", lightColor);
+        ImGui::SliderFloat("Shininess", &shininess, 2.0f, 256.0f);
+        ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 0.3f);
         ImGui::End();
 
         ImGui::Render();
@@ -314,12 +325,15 @@ int main()
         float aspect = (h == 0) ? 1.0f : (float)w / (float)h;
         glm::mat4 proj = glm::perspective(glm::radians(fovDeg), aspect, 0.1f, 100.0f);
 
-        glm::mat4 mvp = proj * view * model;
-
         shader.Bind();
         albedo.Bind(0);
         shader.setUniform1i("u_Texture0", 0);
-        shader.setUniformMat4("u_MVP", mvp);
+        shader.setUniform3f("u_ViewPos", cameraPos.x, cameraPos.y, cameraPos.z);
+        shader.setUniform3f("u_LightPos",   lightPos[0], lightPos[1], lightPos[2]);
+        shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
+        shader.setUniform1f("u_Shininess",  shininess);
+        shader.setUniform1f("u_AmbientStrength", ambientStrength);
+        shader.SetMatrices(model, view, proj);
         shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
 
         glBindVertexArray(VAO);

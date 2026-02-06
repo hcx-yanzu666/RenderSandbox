@@ -181,3 +181,24 @@ void Shader::setUniform1i(const std::string& name, int v)
     if (location != -1)
         glUniform1i(location, v);
 }
+
+void Shader::setUniform3f(const std::string& name, float v0, float v1, float v2)
+{
+    int location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform3f(location,v0,v1,v2);
+}
+
+void Shader::setUniform1f(const std::string& name, float v)
+{
+    int location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform1f(location,v);
+}
+
+void Shader::SetMatrices(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj)
+{
+    setUniformMat4("u_Model",model);
+    setUniformMat4("u_View", view);
+    setUniformMat4("u_Proj", proj);
+}
