@@ -176,9 +176,9 @@ int main()
     float lastTime = (float)glfwGetTime();
 
     //光照参数
-    float lightPos[3] = {1.2f,1.0f,2.0f};
+    float lightDir[3] = { 0.0f, -1.0f, 0.0f };
     float lightColor[3] = {1.0f,1.0f,1.0f};
-    //光照
+    //镜面高光的散射/半径
     float shininess = 32.0f;
     //环境光强度
     float ambientStrength = 0.08f;
@@ -298,7 +298,7 @@ int main()
         ImGui::Text("Yaw %.1f  Pitch %.1f", yaw, pitch);
         ImGui::Separator();
         ImGui::Text("Lighting");
-        ImGui::SliderFloat3("Light Pos", lightPos, -10.0f, 10.0f);
+        ImGui::SliderFloat3("Light Dir", lightDir, -1.0f, 1.0f);
         ImGui::ColorEdit3("Light Color", lightColor);
         ImGui::SliderFloat("Shininess", &shininess, 2.0f, 256.0f);
         ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 0.3f);
@@ -332,7 +332,7 @@ int main()
         albedo.Bind(0);
         shader.setUniform1i("u_Texture0", 0);
         shader.setUniform3f("u_ViewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-        shader.setUniform3f("u_LightPos",   lightPos[0], lightPos[1], lightPos[2]);
+        shader.setUniform3f("u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
         shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
         shader.setUniform1f("u_Shininess",  shininess);
         shader.setUniform1f("u_AmbientStrength", ambientStrength);

@@ -8,7 +8,7 @@ in vec3 vNormal;    // world space
 uniform sampler2D u_Texture0;
 uniform vec4  u_Color;
 
-uniform vec3  u_LightPos;
+uniform vec3 u_LightDir;//光线传播方向 平行光
 uniform vec3  u_LightColor;
 uniform vec3  u_ViewPos;
 uniform float u_Shininess;
@@ -19,7 +19,7 @@ void main()
     vec3 albedo = texture(u_Texture0, vUV).rgb * u_Color.rgb;
 
     vec3 N = normalize(vNormal);
-    vec3 L = normalize(u_LightPos - vFragPos);
+    vec3 L = normalize(-u_LightDir);
     vec3 V = normalize(u_ViewPos   - vFragPos);
 
 
