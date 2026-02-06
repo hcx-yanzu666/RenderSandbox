@@ -45,7 +45,8 @@ int main()
         std::fprintf(stderr, "Failed to initialize GLAD\n");
         return -1;
     }
-    Texture2D albedo("assets/textures/container.jpg", false);
+    //按srgb格式加载
+    Texture2D albedo("assets/textures/container.jpg", true);
 
     // --------- GL states (default ON; can be toggled in ImGui) ---------
     bool enableDepth = true;
@@ -57,6 +58,8 @@ int main()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
