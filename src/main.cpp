@@ -183,6 +183,20 @@ int main()
     //环境光强度
     float ambientStrength = 0.08f;
 
+    //一组model矩阵
+    std::vector<glm::mat4> models;
+    models.reserve(10);
+
+    for (int x = -1; x<= 1; ++x)
+    {
+        for (int z = -1; z<= 1; ++z)
+        {
+            glm::mat4 m(1.0f);
+            m = glm::translate(m, glm::vec3((float)x * 1.5f, 0.0f , (float)z * 1.5f));
+            models.push_back(m);
+        }
+    }
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -336,11 +350,17 @@ int main()
         shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
         shader.setUniform1f("u_Shininess",  shininess);
         shader.setUniform1f("u_AmbientStrength", ambientStrength);
-        shader.SetMatrices(model, view, proj);
         shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
-
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        for (size_t i = 0; i<models.size(); ++i)
+        {
+            glm::mat4 m = models[i];
+            m = glm::rotate(m, now * 0.6f, glm::vec3(0.3f, 1.0f, 0.2f));
+
+            shader.SetMatrices(m,view,proj);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         glBindVertexArray(0);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
