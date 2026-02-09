@@ -345,12 +345,18 @@ int main()
         shader.Bind();
         albedo.Bind(0);
         shader.setUniform1i("u_Texture0", 0);
+        shader.setUniform1i("u_PointLightCount", 2);
         shader.setUniform3f("u_ViewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-        shader.setUniform3f("u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
-        shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
+        // shader.setUniform3f("u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
+        // shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
         shader.setUniform1f("u_Shininess",  shininess);
         shader.setUniform1f("u_AmbientStrength", ambientStrength);
         shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
+        shader.setUniform3f("u_PointLights[0].position",  1.5f, 1.0f,  2.0f);
+        shader.setUniform3f("u_PointLights[0].color",     1.0f, 1.0f,  1.0f);
+
+        shader.setUniform3f("u_PointLights[1].position", -1.5f, 0.5f, -1.0f);
+        shader.setUniform3f("u_PointLights[1].color",     1.0f, 0.5f,  0.2f);
         glBindVertexArray(VAO);
 
         for (size_t i = 0; i<models.size(); ++i)
