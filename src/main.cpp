@@ -1,17 +1,25 @@
 #include <cstdio>
+    #include <vector>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "Shader.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "Texture2D.h"
 
-// ---------------------- Callbacks ----------------------
+#include "Shader.h"
+#include "Texture2D.h"
+#include "Material.h"
+#include "Object.h"
+
+#include "render/Renderer.h"
+#include "render/Light.h"
+
+// ---------------------- 回调 ----------------------
 static void glfw_error_callback(int error, const char* description)
 {
     std::fprintf(stderr, "GLFW Error %d: %s\n", error, description);
@@ -24,7 +32,7 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     g_ScrollY += (float)yoffset;
 }
 
-// ---------------------- Main ----------------------
+// ---------------------- 主函数 ----------------------
 int main()
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -45,10 +53,8 @@ int main()
         std::fprintf(stderr, "Failed to initialize GLAD\n");
         return -1;
     }
-    //按srgb格式加载
-    Texture2D albedo("assets/textures/container.jpg", true);
 
-    // --------- GL states (default ON; can be toggled in ImGui) ---------
+    // ---------------------- GL 状态 ----------------------
     bool enableDepth = true;
     bool enableCull  = true;
 
@@ -58,12 +64,11 @@ int main()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+
+    // 如果你用 sRGB 纹理 + 正确 gamma 流程，就打开它
     glEnable(GL_FRAMEBUFFER_SRGB);
 
-
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-    // --------- ImGui ---------
+    // ---------------------- ImGui 初始化 ----------------------
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -71,64 +76,61 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // --------- Cube geometry (positions only) ---------
-    // pos.xyz + uv
+    // ---------------------- 资源：纹理/着色器 ----------------------
+    Texture2D albedo("assets/textures/container.jpg", true);
+    Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+
+    // ---------------------- 几何：立方体 VAO/VBO ----------------------
+    // 每个顶点：pos(3) + normal(3) + uv(2) = 8 floats
     float vertices[] = {
-    // --------- Front face (z = +0.5), normal = (0,0,1)
-    -0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+        // Front
+        -0.5f,-0.5f, 0.5f,  0,0,1,  0,0,
+         0.5f,-0.5f, 0.5f,  0,0,1,  1,0,
+         0.5f, 0.5f, 0.5f,  0,0,1,  1,1,
+         0.5f, 0.5f, 0.5f,  0,0,1,  1,1,
+        -0.5f, 0.5f, 0.5f,  0,0,1,  0,1,
+        -0.5f,-0.5f, 0.5f,  0,0,1,  0,0,
 
-     0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+        // Back
+        -0.5f,-0.5f,-0.5f,  0,0,-1, 1,0,
+         0.5f, 0.5f,-0.5f,  0,0,-1, 0,1,
+         0.5f,-0.5f,-0.5f,  0,0,-1, 0,0,
+        -0.5f,-0.5f,-0.5f,  0,0,-1, 1,0,
+        -0.5f, 0.5f,-0.5f,  0,0,-1, 1,1,
+         0.5f, 0.5f,-0.5f,  0,0,-1, 0,1,
 
-    // --------- Back face (z = -0.5), normal = (0,0,-1)
-    -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 0.0f,
+        // Left
+        -0.5f, 0.5f, 0.5f, -1,0,0, 1,1,
+        -0.5f, 0.5f,-0.5f, -1,0,0, 0,1,
+        -0.5f,-0.5f,-0.5f, -1,0,0, 0,0,
+        -0.5f,-0.5f,-0.5f, -1,0,0, 0,0,
+        -0.5f,-0.5f, 0.5f, -1,0,0, 1,0,
+        -0.5f, 0.5f, 0.5f, -1,0,0, 1,1,
 
-    -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,   0.0f, 0.0f,-1.0f,   0.0f, 1.0f,
+        // Right
+         0.5f, 0.5f, 0.5f,  1,0,0, 0,1,
+         0.5f,-0.5f,-0.5f,  1,0,0, 1,0,
+         0.5f, 0.5f,-0.5f,  1,0,0, 1,1,
+         0.5f,-0.5f,-0.5f,  1,0,0, 1,0,
+         0.5f, 0.5f, 0.5f,  1,0,0, 0,1,
+         0.5f,-0.5f, 0.5f,  1,0,0, 0,0,
 
-    // --------- Left face (x = -0.5), normal = (-1,0,0)
-    -0.5f,  0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+        // Bottom
+        -0.5f,-0.5f,-0.5f,  0,-1,0, 0,1,
+         0.5f,-0.5f,-0.5f,  0,-1,0, 1,1,
+         0.5f,-0.5f, 0.5f,  0,-1,0, 1,0,
+         0.5f,-0.5f, 0.5f,  0,-1,0, 1,0,
+        -0.5f,-0.5f, 0.5f,  0,-1,0, 0,0,
+        -0.5f,-0.5f,-0.5f,  0,-1,0, 0,1,
 
-    -0.5f, -0.5f, -0.5f,  -1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  -1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-
-    // --------- Right face (x = +0.5), normal = (1,0,0)
-     0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
-
-     0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
-
-    // --------- Bottom face (y = -0.5), normal = (0,-1,0)
-    -0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 0.0f,
-
-     0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,   0.0f,-1.0f, 0.0f,   0.0f, 1.0f,
-
-    // --------- Top face (y = +0.5), normal = (0,1,0)
-    -0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-
-     0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f
-};
-
+        // Top
+        -0.5f, 0.5f,-0.5f,  0,1,0, 0,1,
+         0.5f, 0.5f, 0.5f,  0,1,0, 1,0,
+         0.5f, 0.5f,-0.5f,  0,1,0, 1,1,
+         0.5f, 0.5f, 0.5f,  0,1,0, 1,0,
+        -0.5f, 0.5f,-0.5f,  0,1,0, 0,1,
+        -0.5f, 0.5f, 0.5f,  0,1,0, 0,0,
+    };
 
     unsigned int VAO = 0, VBO = 0;
     glGenVertexArrays(1, &VAO);
@@ -138,65 +140,82 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //apos
+    // aPos
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    //anormal
+    // aNormal
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    //auv
+    // aUV
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-
-    // --------- Render params ---------
-    float color[4] = { 1.0f, 0.3f, 0.2f, 1.0f };
-    // Camera (editor-like)
+    // ---------------------- 相机（你现在的控制逻辑不动） ----------------------
     glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
     glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+
     float yaw = -90.0f;
     float pitch = 0.0f;
     float mouseSensitivity = 0.12f;
+
     glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraRight(1.0f, 0.0f, 0.0f);
     glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
+
     bool firstMouse = true;
     double lastX = 0.0, lastY = 0.0;
+
     bool panning = false;
     double panLastX = 0.0, panLastY = 0.0;
     float panSpeed = 0.005f;
+
     float fovDeg = 60.0f;
     float moveSpeed = 2.5f;
     float lastTime = (float)glfwGetTime();
 
-    //光照参数
-    float lightDir[3] = { 0.0f, -1.0f, 0.0f };
-    float lightColor[3] = {1.0f,1.0f,1.0f};
-    //镜面高光的散射/半径
+    // ---------------------- ImGui 参数（材质参数） ----------------------
+    float tintColor[4] = { 1.0f, 0.3f, 0.2f, 1.0f };
     float shininess = 32.0f;
-    //环境光强度
     float ambientStrength = 0.08f;
 
-    //一组model矩阵
-    std::vector<glm::mat4> models;
-    models.reserve(10);
+    // ---------------------- Material（共享） ----------------------
+    Material litMat;
+    litMat.shader = &shader;
+    litMat.albedo = &albedo;
+    litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
+    litMat.shininess = shininess;
+    litMat.ambientStrength = ambientStrength;
 
-    for (int x = -1; x<= 1; ++x)
+    // ---------------------- Object 列表（每个物体一个 model） ----------------------
+    std::vector<Object> objects;
+    objects.reserve(9);
+
+    for (int x = -1; x <= 1; ++x)
     {
-        for (int z = -1; z<= 1; ++z)
+        for (int z = -1; z <= 1; ++z)
         {
-            glm::mat4 m(1.0f);
-            m = glm::translate(m, glm::vec3((float)x * 1.5f, 0.0f , (float)z * 1.5f));
-            models.push_back(m);
+            Object obj;
+            obj.transform.position = glm::vec3((float)x * 1.5f, 0.0f, (float)z * 1.5f);
+            obj.material = &litMat;
+            objects.push_back(obj);
         }
     }
 
+    // ---------------------- Renderer + Lights（A：Renderer 持有 lights） ----------------------
+    Renderer renderer;
+
+    std::vector<PointLight> lights;
+    lights.push_back({ glm::vec3( 1.5f, 1.0f,  2.0f), glm::vec3(1.0f, 1.0f, 1.0f) });
+    lights.push_back({ glm::vec3(-1.5f, 0.5f, -1.0f), glm::vec3(1.0f, 0.5f, 0.2f) });
+
+    renderer.SetPointLights(lights);
+
+    // ---------------------- 主循环 ----------------------
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -206,7 +225,7 @@ int main()
         float dt = now - lastTime;
         lastTime = now;
 
-        // --------- Optional: keyboard move (feel free to disable) ---------
+        // 键盘移动
         float velocity = moveSpeed * dt;
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraFront * velocity;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraFront * velocity;
@@ -215,7 +234,7 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos += worldUp * velocity;
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos -= worldUp * velocity;
 
-        // --------- Mouse: RMB rotate (only when pressed) ---------
+        // 鼠标右键旋转视角
         int rmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
         if (rmb == GLFW_PRESS)
         {
@@ -231,7 +250,7 @@ int main()
             }
 
             double xoffset = xpos - lastX;
-            double yoffset = lastY - ypos; // invert Y for "look up"
+            double yoffset = lastY - ypos;
 
             lastX = xpos;
             lastY = ypos;
@@ -251,7 +270,7 @@ int main()
             firstMouse = true;
         }
 
-        // --------- Mouse: MMB pan ---------
+        // 鼠标中键平移
         int mmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
         double mx, my;
         glfwGetCursorPos(window, &mx, &my);
@@ -277,7 +296,7 @@ int main()
             panning = false;
         }
 
-        // --------- Scroll: FOV zoom ---------
+        // 滚轮缩放 FOV
         if (g_ScrollY != 0.0f)
         {
             fovDeg -= g_ScrollY * 2.0f;
@@ -286,7 +305,7 @@ int main()
             g_ScrollY = 0.0f;
         }
 
-        // --------- Rebuild camera basis from yaw/pitch (stable, orthonormal) ---------
+        // 由 yaw/pitch 重建相机基向量
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         front.y = sin(glm::radians(pitch));
@@ -296,35 +315,35 @@ int main()
         cameraRight = glm::normalize(glm::cross(cameraFront, worldUp));
         cameraUp    = glm::normalize(glm::cross(cameraRight, cameraFront));
 
-        // --------- ImGui ---------
+        // ---------------------- ImGui ----------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         ImGui::Begin("RenderSandbox");
-        ImGui::ColorEdit4("Color", color);
+        ImGui::ColorEdit4("Tint Color", tintColor);
         ImGui::SliderFloat("FOV (deg)", &fovDeg, 20.0f, 90.0f);
         ImGui::SliderFloat("Move Speed", &moveSpeed, 0.1f, 10.0f);
         ImGui::SliderFloat("Mouse Sens", &mouseSensitivity, 0.01f, 0.5f);
         ImGui::Checkbox("Depth Test", &enableDepth);
         ImGui::Checkbox("Backface Cull", &enableCull);
+
         ImGui::Text("Camera Pos: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
         ImGui::Text("Yaw %.1f  Pitch %.1f", yaw, pitch);
+
         ImGui::Separator();
-        ImGui::Text("Lighting");
-        ImGui::SliderFloat3("Light Dir", lightDir, -1.0f, 1.0f);
-        ImGui::ColorEdit3("Light Color", lightColor);
+        ImGui::Text("Material");
         ImGui::SliderFloat("Shininess", &shininess, 2.0f, 256.0f);
         ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 0.3f);
         ImGui::End();
 
         ImGui::Render();
 
-        // --------- Apply GL state toggles ---------
+        // ---------------------- GL 状态开关 ----------------------
         if (enableDepth) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (enableCull)  glEnable(GL_CULL_FACE);  else glDisable(GL_CULL_FACE);
 
-        // --------- Render ---------
+        // ---------------------- 清屏 ----------------------
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
         glViewport(0, 0, w, h);
@@ -332,48 +351,51 @@ int main()
         glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Matrices
-        glm::mat4 model(1.0f);
-        // rotate around a non-axis-aligned vector to show depth/cull clearly
-        model = glm::rotate(model, now * 0.8f, glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)));
-
+        // ---------------------- 计算 view/proj ----------------------
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
         float aspect = (h == 0) ? 1.0f : (float)w / (float)h;
         glm::mat4 proj = glm::perspective(glm::radians(fovDeg), aspect, 0.1f, 100.0f);
 
-        shader.Bind();
-        albedo.Bind(0);
-        shader.setUniform1i("u_Texture0", 0);
-        shader.setUniform1i("u_PointLightCount", 2);
-        shader.setUniform3f("u_ViewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-        // shader.setUniform3f("u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
-        // shader.setUniform3f("u_LightColor", lightColor[0], lightColor[1], lightColor[2]);
-        shader.setUniform1f("u_Shininess",  shininess);
-        shader.setUniform1f("u_AmbientStrength", ambientStrength);
-        shader.setUniform4f("u_Color", color[0], color[1], color[2], color[3]);
-        shader.setUniform3f("u_PointLights[0].position",  1.5f, 1.0f,  2.0f);
-        shader.setUniform3f("u_PointLights[0].color",     1.0f, 1.0f,  1.0f);
+        // ---------------------- 每帧把 ImGui 参数写回材质 ----------------------
+        litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
+        litMat.shininess = shininess;
+        litMat.ambientStrength = ambientStrength;
 
-        shader.setUniform3f("u_PointLights[1].position", -1.5f, 0.5f, -1.0f);
-        shader.setUniform3f("u_PointLights[1].color",     1.0f, 0.5f,  0.2f);
+        // ---------------------- Renderer：开始一帧 + 画物体 ----------------------
+        renderer.BeginFrame(view, proj, cameraPos);
+
         glBindVertexArray(VAO);
 
-        for (size_t i = 0; i<models.size(); ++i)
-        {
-            glm::mat4 m = models[i];
-            m = glm::rotate(m, now * 0.6f, glm::vec3(0.3f, 1.0f, 0.2f));
+for (size_t i = 0; i < objects.size(); ++i)
+{
+    Object& obj = objects[i];
 
-            shader.SetMatrices(m,view,proj);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+    // 每帧把 ImGui 参数写回材质（你之前做对了）
+    litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
+    litMat.shininess = shininess;
+    litMat.ambientStrength = ambientStrength;
+
+    // 让材质绑定纹理/颜色/高光/环境光等 uniform
+    obj.material->Bind(cameraPos);
+
+    // ✅ Update：让每个物体“自转”（示例：不同物体转速不同）
+    obj.transform.rotationEulerDeg.y += dt * (20.0f + (float)i * 3.0f);
+
+    // ✅ Build model：由 transform 生成 model 矩阵
+    glm::mat4 modelMat = obj.transform.ToMatrix();
+
+    shader.SetMatrices(modelMat, view, proj);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+
         glBindVertexArray(0);
 
+        // ---------------------- ImGui 渲染 ----------------------
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
 
-    // cleanup
+    // ---------------------- 清理 ----------------------
     glDeleteBuffers(1, &VBO);
     glDeleteVertexArrays(1, &VAO);
 
