@@ -18,6 +18,8 @@
 
 #include "render/Renderer.h"
 #include "render/Light.h"
+#include "render/Framebuffer.h"
+
 
 // ---------------------- 回调 ----------------------
 static void glfw_error_callback(int error, const char* description)
@@ -215,6 +217,11 @@ int main()
 
     renderer.SetPointLights(lights);
 
+    int fbw = 0, fbh = 0;
+    glfwGetFramebufferSize(window, &fbw, &fbh);
+    
+    Framebuffer sceneFbo;
+    sceneFbo.Create(fbw, fbh);
     // ---------------------- 主循环 ----------------------
     while (!glfwWindowShouldClose(window))
     {
@@ -343,13 +350,17 @@ int main()
         if (enableDepth) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (enableCull)  glEnable(GL_CULL_FACE);  else glDisable(GL_CULL_FACE);
 
-        // ---------------------- 清屏 ----------------------
+        // ---------------------- 清屏 + Offscreen(FBO) ----------------------
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
+        sceneFbo.Resize(w, h);
+
+        sceneFbo.Bind();
         glViewport(0, 0, w, h);
 
         glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         // ---------------------- 计算 view/proj ----------------------
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -389,6 +400,18 @@ for (size_t i = 0; i < objects.size(); ++i)
 }
 
         glBindVertexArray(0);
+
+        // ---------------------- Present: FBO -> Default ----------------------
+        Framebuffer::BindDefault();
+        glViewport(0, 0, w, h);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, sceneFbo.Fbo());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, w, h,
+                          0, 0, w, h,
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 
         // ---------------------- ImGui 渲染 ----------------------
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

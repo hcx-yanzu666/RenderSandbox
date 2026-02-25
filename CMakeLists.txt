@@ -18,6 +18,8 @@ add_executable(RenderSandbox
         src/render/Renderer.h
         src/render/Light.cpp
         src/render/Light.h
+        src/render/Framebuffer.cpp
+        src/render/Framebuffer.h
         src/Transform.cpp
         src/Transform.h
 )
