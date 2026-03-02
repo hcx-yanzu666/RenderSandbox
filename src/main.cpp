@@ -81,6 +81,8 @@ int main()
     // ---------------------- 资源：纹理/着色器 ----------------------
     Texture2D albedo("assets/textures/container.jpg", true);
     Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    Shader postShader("assets/shaders/post.vert", "assets/shaders/post.frag");
+
 
     // ---------------------- 几何：立方体 VAO/VBO ----------------------
     // 每个顶点：pos(3) + normal(3) + uv(2) = 8 floats
@@ -135,7 +137,9 @@ int main()
     };
 
     unsigned int VAO = 0, VBO = 0;
+    unsigned int fsVAO = 0;
     glGenVertexArrays(1, &VAO);
+    glGenVertexArrays(1, &fsVAO);
     glGenBuffers(1, &VBO);
 
     glBindVertexArray(VAO);
@@ -184,6 +188,8 @@ int main()
     float tintColor[4] = { 1.0f, 0.3f, 0.2f, 1.0f };
     float shininess = 32.0f;
     float ambientStrength = 0.08f;
+    int postMode = 0;
+    float vignetteStrength = 0.35f;
 
     // ---------------------- Material（共享） ----------------------
     Material litMat;
@@ -342,6 +348,11 @@ int main()
         ImGui::Text("Material");
         ImGui::SliderFloat("Shininess", &shininess, 2.0f, 256.0f);
         ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 0.3f);
+        ImGui::Separator();
+        ImGui::Text("PostProcess");
+        ImGui::Combo("Mode", &postMode, "None\0Invert\0Grayscale\0");
+        ImGui::SliderFloat("Vignette", &vignetteStrength, 0.0f, 1.0f);
+        ImGui::Separator();
         ImGui::End();
 
         ImGui::Render();
@@ -405,12 +416,24 @@ for (size_t i = 0; i < objects.size(); ++i)
         Framebuffer::BindDefault();
         glViewport(0, 0, w, h);
 
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, sceneFbo.Fbo());
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, w, h,
-                          0, 0, w, h,
-                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // PostProcess: fullscreen triangle
+        glDisable(GL_DEPTH_TEST); // 后处理不需要深度
+
+        postShader.Bind();
+
+        // scene texture -> unit0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, sceneFbo.ColorTex());
+        postShader.setUniform1i("u_SceneTex", 0);
+
+        postShader.setUniform1i("u_Mode", postMode);
+        postShader.setUniform1f("u_VignetteStrength", vignetteStrength);
+
+        // fullscreen triangle (no VBO)
+        glBindVertexArray(fsVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
+
 
 
         // ---------------------- ImGui 渲染 ----------------------
