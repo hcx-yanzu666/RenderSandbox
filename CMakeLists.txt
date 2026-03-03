@@ -20,6 +20,8 @@ add_executable(RenderSandbox
         src/render/Light.h
         src/render/Framebuffer.cpp
         src/render/Framebuffer.h
+        src/render/PostProcessPass.cpp
+        src/render/PostProcessPass.h
         src/Transform.cpp
         src/Transform.h
 )

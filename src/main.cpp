@@ -1,4 +1,4 @@
-#include <cstdio>
+﻿#include <cstdio>
     #include <vector>
 
 #include <glad/glad.h>
@@ -19,6 +19,7 @@
 #include "render/Renderer.h"
 #include "render/Light.h"
 #include "render/Framebuffer.h"
+#include "render/PostProcessPass.h"
 
 
 // ---------------------- 回调 ----------------------
@@ -137,9 +138,7 @@ int main()
     };
 
     unsigned int VAO = 0, VBO = 0;
-    unsigned int fsVAO = 0;
     glGenVertexArrays(1, &VAO);
-    glGenVertexArrays(1, &fsVAO);
     glGenBuffers(1, &VBO);
 
     glBindVertexArray(VAO);
@@ -228,6 +227,8 @@ int main()
     
     Framebuffer sceneFbo;
     sceneFbo.Create(fbw, fbh);
+    PostProcessPass postPass;
+    postPass.Init(&postShader);
     // ---------------------- 主循环 ----------------------
     while (!glfwWindowShouldClose(window))
     {
@@ -413,26 +414,7 @@ for (size_t i = 0; i < objects.size(); ++i)
         glBindVertexArray(0);
 
         // ---------------------- Present: FBO -> Default ----------------------
-        Framebuffer::BindDefault();
-        glViewport(0, 0, w, h);
-
-        // PostProcess: fullscreen triangle
-        glDisable(GL_DEPTH_TEST); // 后处理不需要深度
-
-        postShader.Bind();
-
-        // scene texture -> unit0
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, sceneFbo.ColorTex());
-        postShader.setUniform1i("u_SceneTex", 0);
-
-        postShader.setUniform1i("u_Mode", postMode);
-        postShader.setUniform1f("u_VignetteStrength", vignetteStrength);
-
-        // fullscreen triangle (no VBO)
-        glBindVertexArray(fsVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
+        postPass.Execute(sceneFbo.ColorTex(), w, h, postMode, vignetteStrength);
 
 
 
