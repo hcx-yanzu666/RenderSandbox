@@ -22,6 +22,8 @@ add_executable(RenderSandbox
         src/render/Framebuffer.h
         src/render/PostProcessPass.cpp
         src/render/PostProcessPass.h
+        src/Mesh.cpp
+        src/Mesh.h
         src/Transform.cpp
         src/Transform.h
 )
@@ -31,11 +33,13 @@ find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 
 
 target_link_libraries(RenderSandbox PRIVATE glfw imgui::imgui OpenGL::GL)
 target_link_libraries(RenderSandbox PRIVATE glfw imgui::imgui OpenGL::GL glad::glad)
 target_link_libraries(RenderSandbox PRIVATE glm::glm)
+target_link_libraries(RenderSandbox PRIVATE assimp::assimp)
 
 
 

@@ -5,6 +5,7 @@
     "glad",
     "glfw3",
     "glm",
+    "assimp",
     {
       "name": "imgui",
       "features": [
