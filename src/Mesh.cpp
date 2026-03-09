@@ -48,42 +48,39 @@ void Mesh::Setup()
 {
     if (m_Vertices.empty() || m_Indices.empty()) return;
 
-    // 1) 为当前网格分配 OpenGL 对象（VAO/VBO/EBO）
+    // 1) 创建 VAO/VBO/EBO
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
     glGenBuffers(1, &m_EBO);
 
-    // 2) 绑定 VAO，让后续缓冲区和顶点属性配置都记录到这个 VAO
+    // 2) 绑定 VAO，后续配置都记录到它
     glBindVertexArray(m_VAO);
 
-    // 3) 上传交错排布的顶点数据：position / normal / uv
+    // 3) 上传顶点数据
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER,
                  static_cast<GLsizeiptr>(m_Vertices.size() * sizeof(MeshVertex)),
                  m_Vertices.data(),
                  GL_STATIC_DRAW);
 
-    // 4) 上传索引数据，供 glDrawElements 按索引绘制
+    // 4) 上传索引数据
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  static_cast<GLsizeiptr>(m_Indices.size() * sizeof(unsigned int)),
                  m_Indices.data(),
                  GL_STATIC_DRAW);
 
-    // 5) 告诉着色器如何解释顶点结构体内存布局
-    // location 0 -> 顶点位置
+    // 5) 顶点布局：location 0/1/2 -> position/normal/uv
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertex), (void*)offsetof(MeshVertex, position));
     glEnableVertexAttribArray(0);
 
-    // location 1 -> 法线
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertex), (void*)offsetof(MeshVertex, normal));
     glEnableVertexAttribArray(1);
 
-    // location 2 -> 纹理坐标
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(MeshVertex), (void*)offsetof(MeshVertex, uv));
     glEnableVertexAttribArray(2);
 
-    // 6) 解绑 VAO，避免后续状态修改污染当前网格配置
+    // 6) 解绑 VAO，防止后续状态污染
     glBindVertexArray(0);
 }
 
@@ -111,3 +108,4 @@ void Mesh::Draw() const
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_Indices.size()), GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
 }
+

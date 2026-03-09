@@ -20,6 +20,7 @@
 #include "render/Light.h"
 #include "render/Framebuffer.h"
 #include "render/PostProcessPass.h"
+#include "Model.h"
 
 
 // ---------------------- 回调 ----------------------
@@ -59,7 +60,7 @@ int main()
 
     // ---------------------- GL 状态 ----------------------
     bool enableDepth = true;
-    bool enableCull  = true;
+    bool enableCull  = false;
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -84,82 +85,12 @@ int main()
     Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
     Shader postShader("assets/shaders/post.vert", "assets/shaders/post.frag");
 
-
-    // ---------------------- 几何：立方体 VAO/VBO ----------------------
-    // 每个顶点：pos(3) + normal(3) + uv(2) = 8 floats
-    float vertices[] = {
-        // Front
-        -0.5f,-0.5f, 0.5f,  0,0,1,  0,0,
-         0.5f,-0.5f, 0.5f,  0,0,1,  1,0,
-         0.5f, 0.5f, 0.5f,  0,0,1,  1,1,
-         0.5f, 0.5f, 0.5f,  0,0,1,  1,1,
-        -0.5f, 0.5f, 0.5f,  0,0,1,  0,1,
-        -0.5f,-0.5f, 0.5f,  0,0,1,  0,0,
-
-        // Back
-        -0.5f,-0.5f,-0.5f,  0,0,-1, 1,0,
-         0.5f, 0.5f,-0.5f,  0,0,-1, 0,1,
-         0.5f,-0.5f,-0.5f,  0,0,-1, 0,0,
-        -0.5f,-0.5f,-0.5f,  0,0,-1, 1,0,
-        -0.5f, 0.5f,-0.5f,  0,0,-1, 1,1,
-         0.5f, 0.5f,-0.5f,  0,0,-1, 0,1,
-
-        // Left
-        -0.5f, 0.5f, 0.5f, -1,0,0, 1,1,
-        -0.5f, 0.5f,-0.5f, -1,0,0, 0,1,
-        -0.5f,-0.5f,-0.5f, -1,0,0, 0,0,
-        -0.5f,-0.5f,-0.5f, -1,0,0, 0,0,
-        -0.5f,-0.5f, 0.5f, -1,0,0, 1,0,
-        -0.5f, 0.5f, 0.5f, -1,0,0, 1,1,
-
-        // Right
-         0.5f, 0.5f, 0.5f,  1,0,0, 0,1,
-         0.5f,-0.5f,-0.5f,  1,0,0, 1,0,
-         0.5f, 0.5f,-0.5f,  1,0,0, 1,1,
-         0.5f,-0.5f,-0.5f,  1,0,0, 1,0,
-         0.5f, 0.5f, 0.5f,  1,0,0, 0,1,
-         0.5f,-0.5f, 0.5f,  1,0,0, 0,0,
-
-        // Bottom
-        -0.5f,-0.5f,-0.5f,  0,-1,0, 0,1,
-         0.5f,-0.5f,-0.5f,  0,-1,0, 1,1,
-         0.5f,-0.5f, 0.5f,  0,-1,0, 1,0,
-         0.5f,-0.5f, 0.5f,  0,-1,0, 1,0,
-        -0.5f,-0.5f, 0.5f,  0,-1,0, 0,0,
-        -0.5f,-0.5f,-0.5f,  0,-1,0, 0,1,
-
-        // Top
-        -0.5f, 0.5f,-0.5f,  0,1,0, 0,1,
-         0.5f, 0.5f, 0.5f,  0,1,0, 1,0,
-         0.5f, 0.5f,-0.5f,  0,1,0, 1,1,
-         0.5f, 0.5f, 0.5f,  0,1,0, 1,0,
-        -0.5f, 0.5f,-0.5f,  0,1,0, 0,1,
-        -0.5f, 0.5f, 0.5f,  0,1,0, 0,0,
-    };
-
-    unsigned int VAO = 0, VBO = 0;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // aPos
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // aNormal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // aUV
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    Model model;
+    if (!model.Load("assets/models/demo_cube.obj"))
+    {
+        std::fprintf(stderr, "Failed to load model!\n");
+        return -1;
+    }
     // ---------------------- 相机（你现在的控制逻辑不动） ----------------------
     glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
     glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
@@ -189,6 +120,9 @@ int main()
     float ambientStrength = 0.08f;
     int postMode = 0;
     float vignetteStrength = 0.35f;
+    bool drawModel = true;
+    float modelYaw = 0.0f;
+    float modelScaleMul = 1.0f;
 
     // ---------------------- Material（共享） ----------------------
     Material litMat;
@@ -354,6 +288,12 @@ int main()
         ImGui::Combo("Mode", &postMode, "None\0Invert\0Grayscale\0");
         ImGui::SliderFloat("Vignette", &vignetteStrength, 0.0f, 1.0f);
         ImGui::Separator();
+        ImGui::Text("Model");
+        ImGui::Checkbox("Draw Model", &drawModel);
+        ImGui::SliderFloat("Model Yaw", &modelYaw, -180.0f, 180.0f);
+        ImGui::SliderFloat("Model Scale Mul", &modelScaleMul, 0.1f, 5.0f);
+        ImGui::Text("Model Radius: %.3f", model.GetRadius());
+        ImGui::Separator();
         ImGui::End();
 
         ImGui::Render();
@@ -387,31 +327,35 @@ int main()
         // ---------------------- Renderer：开始一帧 + 画物体 ----------------------
         renderer.BeginFrame(view, proj, cameraPos);
 
-        glBindVertexArray(VAO);
+        litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
+        litMat.shininess = shininess;
+        litMat.ambientStrength = ambientStrength;
+        litMat.Bind(cameraPos);
 
-for (size_t i = 0; i < objects.size(); ++i)
-{
-    Object& obj = objects[i];
+        // 设置点光源 uniform
+        shader.setUniform1i("u_PointLightCount", (int)lights.size());
+        for (int li = 0; li < (int)lights.size(); li++)
+        {
+            shader.setUniform3f(("u_PointLights[" + std::to_string(li) + "].position").c_str(),
+                lights[li].position.x, lights[li].position.y, lights[li].position.z);
+            shader.setUniform3f(("u_PointLights[" + std::to_string(li) + "].color").c_str(),
+                lights[li].color.x, lights[li].color.y, lights[li].color.z);
+        }
 
-    // 每帧把 ImGui 参数写回材质（你之前做对了）
-    litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
-    litMat.shininess = shininess;
-    litMat.ambientStrength = ambientStrength;
+        if (drawModel)
+        {
+            glm::mat4 modelMat(1.0f);
+            modelMat = glm::rotate(modelMat, glm::radians(modelYaw), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    // 让材质绑定纹理/颜色/高光/环境光等 uniform
-    obj.material->Bind(cameraPos);
+            float radius = model.GetRadius();
+            float fitScale = (radius > 0.0001f) ? (1.2f / radius) : 1.0f;
+            if (fitScale > 100.0f) fitScale = 100.0f;
+            modelMat = glm::scale(modelMat, glm::vec3(fitScale * modelScaleMul));
+            modelMat = glm::translate(modelMat, -model.GetCenter());
 
-    // ✅ Update：让每个物体“自转”（示例：不同物体转速不同）
-    obj.transform.rotationEulerDeg.y += dt * (20.0f + (float)i * 3.0f);
-
-    // ✅ Build model：由 transform 生成 model 矩阵
-    glm::mat4 modelMat = obj.transform.ToMatrix();
-
-    shader.SetMatrices(modelMat, view, proj);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-
-        glBindVertexArray(0);
+            shader.SetMatrices(modelMat, view, proj);
+            model.Draw();
+        }
 
         // ---------------------- Present: FBO -> Default ----------------------
         postPass.Execute(sceneFbo.ColorTex(), w, h, postMode, vignetteStrength);
@@ -424,9 +368,6 @@ for (size_t i = 0; i < objects.size(); ++i)
     }
 
     // ---------------------- 清理 ----------------------
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAO);
-
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

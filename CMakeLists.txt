@@ -26,6 +26,8 @@ add_executable(RenderSandbox
         src/Mesh.h
         src/Transform.cpp
         src/Transform.h
+        src/Model.cpp
+        src/Model.h
 )
 
 find_package(glfw3 CONFIG REQUIRED)
@@ -46,3 +48,11 @@ target_link_libraries(RenderSandbox PRIVATE assimp::assimp)
 if (WIN32)
     target_compile_definitions(RenderSandbox PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
+
+# 每次构建后，把 assets 目录同步到可执行文件旁边
+add_custom_command(TARGET RenderSandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:RenderSandbox>/assets
+    COMMENT "Copying assets to build directory"
+)
