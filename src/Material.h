@@ -14,5 +14,10 @@ struct Material
     float      shininess = 32.0f;
     float      ambientStrength = 0.08f;
 
+    // PBR 参数（pbr.frag 用）
+    float      metallic  = 0.0f;
+    float      roughness = 0.5f;
+    float      ao        = 1.0f;
+
     void Bind(const glm::vec3& viewPos) const;
 };

@@ -19,6 +19,11 @@ void Material::Bind(const glm::vec3& viewPos) const
     shader->setUniform1f("u_Shininess", shininess);
     shader->setUniform1f("u_AmbientStrength", ambientStrength);
 
+    // PBR 参数（pbr.frag 用；basic.frag 会忽略不认识的 uniform，不会报错）
+    shader->setUniform1f("u_Metallic",  metallic);
+    shader->setUniform1f("u_Roughness", roughness);
+    shader->setUniform1f("u_AO",        ao);
+
     shader->setUniform3f("u_ViewPos",
         viewPos.x, viewPos.y, viewPos.z);
 }

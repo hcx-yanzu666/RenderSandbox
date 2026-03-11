@@ -69,8 +69,9 @@ int main()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    // 如果你用 sRGB 纹理 + 正确 gamma 流程，就打开它
-    glEnable(GL_FRAMEBUFFER_SRGB);
+    // pbr.frag 已手动做 pow(color, 1/2.2)，不能再开 FRAMEBUFFER_SRGB
+    // 否则会做两次 gamma，图像过曝发白
+    // glEnable(GL_FRAMEBUFFER_SRGB);
 
     // ---------------------- ImGui 初始化 ----------------------
     IMGUI_CHECKVERSION();
@@ -82,7 +83,7 @@ int main()
 
     // ---------------------- 资源：纹理/着色器 ----------------------
     Texture2D albedo("assets/textures/container.jpg", true);
-    Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    Shader shader("assets/shaders/basic.vert", "assets/shaders/pbr.frag");
     Shader postShader("assets/shaders/post.vert", "assets/shaders/post.frag");
 
     Model model;
@@ -123,6 +124,11 @@ int main()
     bool drawModel = true;
     float modelYaw = 0.0f;
     float modelScaleMul = 1.0f;
+    // PBR 调节参数
+    float metallic  = 0.0f;
+    float roughness = 0.5f;
+    float ao        = 1.0f;
+    float lightIntensity = 30.0f;  // PBR 距离平方衰减，需要更高的光源强度
 
     // ---------------------- Material（共享） ----------------------
     Material litMat;
@@ -151,8 +157,8 @@ int main()
     Renderer renderer;
 
     std::vector<PointLight> lights;
-    lights.push_back({ glm::vec3( 1.5f, 1.0f,  2.0f), glm::vec3(1.0f, 1.0f, 1.0f) });
-    lights.push_back({ glm::vec3(-1.5f, 0.5f, -1.0f), glm::vec3(1.0f, 0.5f, 0.2f) });
+    lights.push_back({ glm::vec3( 1.5f, 4.0f,  2.0f), glm::vec3(1.0f, 1.0f, 1.0f) });
+    lights.push_back({ glm::vec3(-1.5f, 3.0f, -1.0f), glm::vec3(1.0f, 0.5f, 0.2f) });
 
     renderer.SetPointLights(lights);
 
@@ -283,6 +289,11 @@ int main()
         ImGui::Text("Material");
         ImGui::SliderFloat("Shininess", &shininess, 2.0f, 256.0f);
         ImGui::SliderFloat("Ambient", &ambientStrength, 0.0f, 0.3f);
+        ImGui::Text("PBR");
+        ImGui::SliderFloat("Metallic",   &metallic,       0.0f, 1.0f);
+        ImGui::SliderFloat("Roughness",  &roughness,      0.05f, 1.0f);
+        ImGui::SliderFloat("AO",         &ao,             0.0f, 1.0f);
+        ImGui::SliderFloat("Light Intensity", &lightIntensity, 1.0f, 300.0f);
         ImGui::Separator();
         ImGui::Text("PostProcess");
         ImGui::Combo("Mode", &postMode, "None\0Invert\0Grayscale\0");
@@ -323,23 +334,21 @@ int main()
         litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
         litMat.shininess = shininess;
         litMat.ambientStrength = ambientStrength;
+        litMat.metallic  = metallic;
+        litMat.roughness = roughness;
+        litMat.ao        = ao;
 
-        // ---------------------- Renderer：开始一帧 + 画物体 ----------------------
-        renderer.BeginFrame(view, proj, cameraPos);
-
-        litMat.color = glm::vec4(tintColor[0], tintColor[1], tintColor[2], tintColor[3]);
-        litMat.shininess = shininess;
-        litMat.ambientStrength = ambientStrength;
-        litMat.Bind(cameraPos);
-
-        // 设置点光源 uniform
+        // 用 lightIntensity 缩放光源颜色传入 shader
+        // PBR 距离平方衰减需要更强的光源才能看到效果
+        litMat.Bind(cameraPos);   // 激活 shader + 传材质 uniform
         shader.setUniform1i("u_PointLightCount", (int)lights.size());
         for (int li = 0; li < (int)lights.size(); li++)
         {
             shader.setUniform3f(("u_PointLights[" + std::to_string(li) + "].position").c_str(),
                 lights[li].position.x, lights[li].position.y, lights[li].position.z);
+            glm::vec3 scaledColor = lights[li].color * lightIntensity;
             shader.setUniform3f(("u_PointLights[" + std::to_string(li) + "].color").c_str(),
-                lights[li].color.x, lights[li].color.y, lights[li].color.z);
+                scaledColor.x, scaledColor.y, scaledColor.z);
         }
 
         if (drawModel)
