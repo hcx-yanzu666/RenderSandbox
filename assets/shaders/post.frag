@@ -23,6 +23,14 @@ void main()
     //根据当前像素的 UV 从场景纹理里采样颜色
     vec3 c = texture(u_SceneTex, vUV).rgb;
 
+        // ---- Tone mapping：HDR -> LDR ----
+        // 物理正确的光照计算结果可能超过 1.0（HDR）
+        // Reinhard 算子把它压回 [0,1]
+        c = c / (c + vec3(1.0));
+
+        // ---- Gamma 矫正：线性 -> sRGB ----
+        c = pow(c, vec3(1.0 / 2.2));
+
     //Mode1 反色
     if (u_Mode == 1) c = vec3(1.0) - c;
     //Mode2 灰度

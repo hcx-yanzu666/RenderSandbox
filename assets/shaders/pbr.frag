@@ -130,13 +130,5 @@ void main()
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color   = ambient + Lo;
 
-    // ---- Tone mapping：HDR -> LDR ----
-    // 物理正确的光照计算结果可能超过 1.0（HDR）
-    // Reinhard 算子把它压回 [0,1]
-    color = color / (color + vec3(1.0));
-
-    // ---- Gamma 矫正：线性 -> sRGB ----
-    color = pow(color, vec3(1.0 / 2.2));
-
     FragColor = vec4(color, 1.0);
 }
