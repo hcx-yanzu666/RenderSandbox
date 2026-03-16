@@ -18,7 +18,7 @@ void IBLBaker::Bake(uint32_t hdrTexID)
 {
     std::printf("[IBLBaker] Starting bake...\n");
     BakeCubemap(hdrTexID);
-    // BakeIrradiance();    // 下一步
+    BakeIrradiance();
     // BakePrefilter();     // 下一步
     // BakeBRDFLUT();       // 下一步
     std::printf("[IBLBaker] Bake complete.\n");
@@ -98,8 +98,52 @@ void IBLBaker::BakeCubemap(uint32_t hdrTexID)
 
 void IBLBaker::BakeIrradiance()
 {
-    // 下一步实现
+    // 1) 创建 32×32 的 IrradianceMap（低分辨率就够，因为是模糊结果）
+    glGenTextures(1, &m_IrradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_IrradianceMap);
+    for (int i = 0; i < 6; i++)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                     0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // 2) 复用已有的 FBO，但 RBO 要改成 32×32
+    glBindFramebuffer(GL_FRAMEBUFFER, m_CaptureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_CaptureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+    // 3) 卷积 shader（顶点复用 cubemap.vert，只需要位置+方向）
+    Shader irrShader("assets/shaders/cubemap.vert",
+                     "assets/shaders/irradiance_convolution.frag");
+    irrShader.Bind();
+    irrShader.setUniform1i("u_EnvMap", 0);
+    irrShader.setUniformMat4("u_Projection", s_CaptureProj);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_EnvCubemap); // 输入：上一步烘好的 Cubemap
+
+    glViewport(0, 0, 32, 32);
+    glDisable(GL_CULL_FACE);
+
+    for (int i = 0; i < 6; i++)
+    {
+        irrShader.setUniformMat4("u_View", s_CaptureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                               m_IrradianceMap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        RenderCube();
+    }
+
+    glEnable(GL_CULL_FACE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
 
 void IBLBaker::BakePrefilter()
 {

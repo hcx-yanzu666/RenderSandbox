@@ -27,6 +27,8 @@ struct PointLight {
 #define MAX_POINT_LIGHTS 8
 uniform int        u_PointLightCount;
 uniform PointLight u_PointLights[MAX_POINT_LIGHTS];
+uniform samplerCube u_IrradianceMap;   // 漫反射 IBL
+
 
 // -------------------------------------------------------------------------
 // PBR 核心函数
@@ -69,6 +71,14 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+//  IBL 专用 Fresnel: 考虑粗糙度对间接光的影响
+// 直接光用 dot(H,V)，间接光没有明确的 H，改用 dot(N,V) + roughness 修正
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0)
+              * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 // ----------------------------------------------------------------
@@ -126,8 +136,16 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    // ---- 环境光（IBL 之前的占位符）----
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    // ---- 漫反射 IBL（用 IrradianceMap 替代常量环境光）----
+    // 间接光没有明确 H，用 N·V + roughness 修正的 Fresnel
+    vec3 F_ibl = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kD_ibl = (vec3(1.0) - F_ibl) * (1.0 - metallic);
+
+    // 用法线方向采样 IrradianceMap，得到这个方向的平均环境光
+    vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+    vec3 diffuse_ibl = irradiance * albedo;
+
+    vec3 ambient = kD_ibl * diffuse_ibl * ao;
     vec3 color   = ambient + Lo;
 
     FragColor = vec4(color, 1.0);

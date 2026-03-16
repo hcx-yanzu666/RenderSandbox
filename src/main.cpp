@@ -64,6 +64,7 @@ int main()
     bool enableCull  = false;
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glDepthFunc(GL_LESS);
 
     glEnable(GL_CULL_FACE);
@@ -354,6 +355,10 @@ int main()
         // PBR 距离平方衰减需要更强的光源才能看到效果
         litMat.Bind(cameraPos);   // 激活 shader + 传材质 uniform
         shader.setUniform1i("u_PointLightCount", (int)lights.size());
+        // 绑定 IrradianceMap 到纹理单元 2
+        shader.setUniform1i("u_IrradianceMap", 2);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, iblBaker.GetIrradianceMap());
         for (int li = 0; li < (int)lights.size(); li++)
         {
             shader.setUniform3f(("u_PointLights[" + std::to_string(li) + "].position").c_str(),
@@ -390,6 +395,8 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, iblBaker.GetEnvCubemap());
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, iblBaker.GetIrradianceMap());
+
 
         iblBaker.RenderCube();  // 复用已有的 RenderCube
 
