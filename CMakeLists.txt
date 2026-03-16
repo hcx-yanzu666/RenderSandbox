@@ -28,6 +28,10 @@ add_executable(RenderSandbox
         src/Transform.h
         src/Model.cpp
         src/Model.h
+        src/TextureHDR.cpp
+        src/TextureHDR.h
+        src/IBLBaker.cpp
+        src/IBLBaker.h
 )
 
 find_package(glfw3 CONFIG REQUIRED)

@@ -21,7 +21,8 @@
 #include "render/Framebuffer.h"
 #include "render/PostProcessPass.h"
 #include "Model.h"
-
+#include "TextureHDR.h"
+#include "IBLBaker.h"
 
 // ---------------------- 回调 ----------------------
 static void glfw_error_callback(int error, const char* description)
@@ -85,6 +86,17 @@ int main()
     Texture2D albedo("assets/textures/container.jpg", true);
     Shader shader("assets/shaders/basic.vert", "assets/shaders/pbr.frag");
     Shader postShader("assets/shaders/post.vert", "assets/shaders/post.frag");
+    Shader skyboxShader("assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
+
+    TextureHDR hdrTexture;
+    if (!hdrTexture.Load("assets/textures/suburban_garden_2k.hdr"))
+    {
+        std::fprintf(stderr, "Failed to load HDR!\n");
+        return -1;
+    }
+
+    IBLBaker iblBaker;
+    iblBaker.Bake(hdrTexture.GetID());  // 程序启动时预计算一次
 
     Model model;
     if (!model.Load("assets/models/demo_cube.obj"))
@@ -365,6 +377,25 @@ int main()
             shader.SetMatrices(modelMat, view, proj);
             model.Draw();
         }
+
+        // ---- 渲染天空盒 ----
+        glDepthFunc(GL_LEQUAL);  // 天空盒深度值 = 1.0，LEQUAL 才能通过测试
+
+        skyboxShader.Bind();
+        // 去掉 view 的平移，相机永远在盒子中心
+        glm::mat4 skyView = glm::mat4(glm::mat3(view));
+        skyboxShader.setUniformMat4("u_Projection", proj);
+        skyboxShader.setUniformMat4("u_View", skyView);
+        skyboxShader.setUniform1i("u_Skybox", 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, iblBaker.GetEnvCubemap());
+
+        iblBaker.RenderCube();  // 复用已有的 RenderCube
+
+        glDepthFunc(GL_LESS);   // 恢复默认深度测试
+        // ---- 天空盒结束 ----
+
 
         // ---------------------- Present: FBO -> Default ----------------------
         postPass.Execute(sceneFbo.ColorTex(), w, h, postMode, vignetteStrength);
